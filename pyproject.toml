@@ -1,0 +1,28 @@
+# Hermes reads [project].dependencies from this file and installs them into its
+# own venv on `hermes plugins install` / `enable`, re-applying them after every
+# `hermes update`. Keep the declared range honest: this plugin calls gonogo's
+# public API (Case, Prediction, CaseResult, group_results, decide, Report,
+# compare), which is what 0.2 exposes.
+
+[project]
+name = "hermes-plugin-gonogo"
+version = "0.1.0"
+description = "Hermes plugin: turn a pilot-scale eval score into a ship / don't-ship decision."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "James Dominguez" }]
+keywords = ["hermes", "plugin", "evals", "calibration", "selective-prediction"]
+dependencies = [
+  "gonogo-eval>=0.2,<0.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pyyaml>=6"]
+
+[project.urls]
+Homepage = "https://github.com/keppy/hermes-plugin-gonogo"
+Source = "https://github.com/keppy/hermes-plugin-gonogo"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

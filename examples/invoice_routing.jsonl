@@ -1,0 +1,60 @@
+{"id": "inv-001", "passed": true, "confidence": 0.86, "expected": "Acme Supply", "output": "Acme Supply", "detail": "", "metadata": {"document": "batch-1"}}
+{"id": "inv-002", "passed": true, "confidence": 0.97, "expected": "Borealis Ltd", "output": "Borealis Ltd", "detail": "", "metadata": {"document": "batch-1"}}
+{"id": "inv-003", "passed": true, "confidence": 0.97, "expected": "Cinder Works", "output": "Cinder Works", "detail": "", "metadata": {"document": "batch-1"}}
+{"id": "inv-004", "passed": true, "confidence": 0.97, "expected": "Delta Freight", "output": "Delta Freight", "detail": "", "metadata": {"document": "batch-1"}}
+{"id": "inv-005", "passed": true, "confidence": 0.97, "expected": "Everline", "output": "Everline", "detail": "", "metadata": {"document": "batch-1"}}
+{"id": "inv-006", "passed": false, "confidence": 0.42, "expected": "Fairhaven Co", "output": "Acme Supply", "detail": "normalized the trading name to its parent entity", "metadata": {"document": "batch-1"}}
+{"id": "inv-007", "passed": true, "confidence": 0.97, "expected": "Granite Row", "output": "Granite Row", "detail": "", "metadata": {"document": "batch-1"}}
+{"id": "inv-008", "passed": true, "confidence": 0.86, "expected": "Hollow Point", "output": "Hollow Point", "detail": "", "metadata": {"document": "batch-1"}}
+{"id": "inv-009", "passed": true, "confidence": 0.97, "expected": "Acme Supply", "output": "Acme Supply", "detail": "", "metadata": {"document": "batch-1"}}
+{"id": "inv-010", "passed": true, "confidence": 0.97, "expected": "Borealis Ltd", "output": "Borealis Ltd", "detail": "", "metadata": {"document": "batch-1"}}
+{"id": "inv-011", "passed": true, "confidence": 0.97, "expected": "Cinder Works", "output": "Cinder Works", "detail": "", "metadata": {"document": "batch-2"}}
+{"id": "inv-012", "passed": true, "confidence": 0.97, "expected": "Delta Freight", "output": "Delta Freight", "detail": "", "metadata": {"document": "batch-2"}}
+{"id": "inv-013", "passed": false, "confidence": 0.42, "expected": "Everline", "output": "Hollow Point", "detail": "normalized the trading name to its parent entity", "metadata": {"document": "batch-2"}}
+{"id": "inv-014", "passed": true, "confidence": 0.97, "expected": "Fairhaven Co", "output": "Fairhaven Co", "detail": "", "metadata": {"document": "batch-2"}}
+{"id": "inv-015", "passed": true, "confidence": 0.86, "expected": "Granite Row", "output": "Granite Row", "detail": "", "metadata": {"document": "batch-2"}}
+{"id": "inv-016", "passed": true, "confidence": 0.97, "expected": "Hollow Point", "output": "Hollow Point", "detail": "", "metadata": {"document": "batch-2"}}
+{"id": "inv-017", "passed": true, "confidence": 0.97, "expected": "Acme Supply", "output": "Acme Supply", "detail": "", "metadata": {"document": "batch-2"}}
+{"id": "inv-018", "passed": true, "confidence": 0.97, "expected": "Borealis Ltd", "output": "Borealis Ltd", "detail": "", "metadata": {"document": "batch-2"}}
+{"id": "inv-019", "passed": true, "confidence": 0.97, "expected": "Cinder Works", "output": "Cinder Works", "detail": "", "metadata": {"document": "batch-2"}}
+{"id": "inv-020", "passed": false, "confidence": 0.42, "expected": "Delta Freight", "output": "Granite Row", "detail": "normalized the trading name to its parent entity", "metadata": {"document": "batch-2"}}
+{"id": "inv-021", "passed": true, "confidence": 0.97, "expected": "Everline", "output": "Everline", "detail": "", "metadata": {"document": "batch-3"}}
+{"id": "inv-022", "passed": true, "confidence": 0.86, "expected": "Fairhaven Co", "output": "Fairhaven Co", "detail": "", "metadata": {"document": "batch-3"}}
+{"id": "inv-023", "passed": true, "confidence": 0.97, "expected": "Granite Row", "output": "Granite Row", "detail": "", "metadata": {"document": "batch-3"}}
+{"id": "inv-024", "passed": true, "confidence": 0.97, "expected": "Hollow Point", "output": "Hollow Point", "detail": "", "metadata": {"document": "batch-3"}}
+{"id": "inv-025", "passed": true, "confidence": 0.97, "expected": "Acme Supply", "output": "Acme Supply", "detail": "", "metadata": {"document": "batch-3"}}
+{"id": "inv-026", "passed": true, "confidence": 0.97, "expected": "Borealis Ltd", "output": "Borealis Ltd", "detail": "", "metadata": {"document": "batch-3"}}
+{"id": "inv-027", "passed": true, "confidence": 0.97, "expected": "Cinder Works", "output": "Cinder Works", "detail": "", "metadata": {"document": "batch-3"}}
+{"id": "inv-028", "passed": false, "confidence": 0.42, "expected": "Delta Freight", "output": "Granite Row", "detail": "normalized the trading name to its parent entity", "metadata": {"document": "batch-3"}}
+{"id": "inv-029", "passed": true, "confidence": 0.86, "expected": "Everline", "output": "Everline", "detail": "", "metadata": {"document": "batch-3"}}
+{"id": "inv-030", "passed": true, "confidence": 0.97, "expected": "Fairhaven Co", "output": "Fairhaven Co", "detail": "", "metadata": {"document": "batch-3"}}
+{"id": "inv-031", "passed": true, "confidence": 0.97, "expected": "Granite Row", "output": "Granite Row", "detail": "", "metadata": {"document": "batch-4"}}
+{"id": "inv-032", "passed": true, "confidence": 0.97, "expected": "Hollow Point", "output": "Hollow Point", "detail": "", "metadata": {"document": "batch-4"}}
+{"id": "inv-033", "passed": true, "confidence": 0.97, "expected": "Acme Supply", "output": "Acme Supply", "detail": "", "metadata": {"document": "batch-4"}}
+{"id": "inv-034", "passed": false, "confidence": 0.42, "expected": "Borealis Ltd", "output": "Everline", "detail": "normalized the trading name to its parent entity", "metadata": {"document": "batch-4"}}
+{"id": "inv-035", "passed": true, "confidence": 0.97, "expected": "Cinder Works", "output": "Cinder Works", "detail": "", "metadata": {"document": "batch-4"}}
+{"id": "inv-036", "passed": true, "confidence": 0.86, "expected": "Delta Freight", "output": "Delta Freight", "detail": "", "metadata": {"document": "batch-4"}}
+{"id": "inv-037", "passed": true, "confidence": 0.97, "expected": "Everline", "output": "Everline", "detail": "", "metadata": {"document": "batch-4"}}
+{"id": "inv-038", "passed": true, "confidence": 0.97, "expected": "Fairhaven Co", "output": "Fairhaven Co", "detail": "", "metadata": {"document": "batch-4"}}
+{"id": "inv-039", "passed": true, "confidence": 0.97, "expected": "Granite Row", "output": "Granite Row", "detail": "", "metadata": {"document": "batch-4"}}
+{"id": "inv-040", "passed": true, "confidence": 0.97, "expected": "Hollow Point", "output": "Hollow Point", "detail": "", "metadata": {"document": "batch-4"}}
+{"id": "inv-041", "passed": true, "confidence": 0.97, "expected": "Acme Supply", "output": "Acme Supply", "detail": "", "metadata": {"document": "batch-5"}}
+{"id": "inv-042", "passed": false, "confidence": 0.42, "expected": "Borealis Ltd", "output": "Everline", "detail": "normalized the trading name to its parent entity", "metadata": {"document": "batch-5"}}
+{"id": "inv-043", "passed": true, "confidence": 0.86, "expected": "Cinder Works", "output": "Cinder Works", "detail": "", "metadata": {"document": "batch-5"}}
+{"id": "inv-044", "passed": true, "confidence": 0.97, "expected": "Delta Freight", "output": "Delta Freight", "detail": "", "metadata": {"document": "batch-5"}}
+{"id": "inv-045", "passed": true, "confidence": 0.97, "expected": "Everline", "output": "Everline", "detail": "", "metadata": {"document": "batch-5"}}
+{"id": "inv-046", "passed": true, "confidence": 0.97, "expected": "Fairhaven Co", "output": "Fairhaven Co", "detail": "", "metadata": {"document": "batch-5"}}
+{"id": "inv-047", "passed": true, "confidence": 0.97, "expected": "Granite Row", "output": "Granite Row", "detail": "", "metadata": {"document": "batch-5"}}
+{"id": "inv-048", "passed": true, "confidence": 0.97, "expected": "Hollow Point", "output": "Hollow Point", "detail": "", "metadata": {"document": "batch-5"}}
+{"id": "inv-049", "passed": false, "confidence": 0.42, "expected": "Acme Supply", "output": "Delta Freight", "detail": "normalized the trading name to its parent entity", "metadata": {"document": "batch-5"}}
+{"id": "inv-050", "passed": true, "confidence": 0.86, "expected": "Borealis Ltd", "output": "Borealis Ltd", "detail": "", "metadata": {"document": "batch-5"}}
+{"id": "inv-051", "passed": true, "confidence": 0.97, "expected": "Cinder Works", "output": "Cinder Works", "detail": "", "metadata": {"document": "batch-6"}}
+{"id": "inv-052", "passed": true, "confidence": 0.97, "expected": "Delta Freight", "output": "Delta Freight", "detail": "", "metadata": {"document": "batch-6"}}
+{"id": "inv-053", "passed": false, "confidence": 0.42, "expected": "Everline", "output": "Hollow Point", "detail": "normalized the trading name to its parent entity", "metadata": {"document": "batch-6"}}
+{"id": "inv-054", "passed": true, "confidence": 0.97, "expected": "Fairhaven Co", "output": "Fairhaven Co", "detail": "", "metadata": {"document": "batch-6"}}
+{"id": "inv-055", "passed": true, "confidence": 0.97, "expected": "Granite Row", "output": "Granite Row", "detail": "", "metadata": {"document": "batch-6"}}
+{"id": "inv-056", "passed": true, "confidence": 0.97, "expected": "Hollow Point", "output": "Hollow Point", "detail": "", "metadata": {"document": "batch-6"}}
+{"id": "inv-057", "passed": true, "confidence": 0.86, "expected": "Acme Supply", "output": "Acme Supply", "detail": "", "metadata": {"document": "batch-6"}}
+{"id": "inv-058", "passed": false, "confidence": 0.42, "expected": "Borealis Ltd", "output": "Everline", "detail": "normalized the trading name to its parent entity", "metadata": {"document": "batch-6"}}
+{"id": "inv-059", "passed": true, "confidence": 0.97, "expected": "Cinder Works", "output": "Cinder Works", "detail": "", "metadata": {"document": "batch-6"}}
+{"id": "inv-060", "passed": true, "confidence": 0.97, "expected": "Delta Freight", "output": "Delta Freight", "detail": "", "metadata": {"document": "batch-6"}}

@@ -1,0 +1,17 @@
+name: gonogo
+version: 0.1.0
+manifest_version: 2
+api_version: 1
+description: >-
+  Turn a pilot-scale eval score into a deployment decision. Wilson intervals,
+  a confidence threshold that routes uncertain cases to a human, and an honest
+  INSUFFICIENT EVIDENCE verdict when the sample cannot support the claim.
+author: James Dominguez (keppy)
+license: MIT
+homepage: https://github.com/keppy/hermes-plugin-gonogo
+tags: [evals, statistics, decisions, calibration, selective-prediction]
+provides_tools:
+  - gonogo_decide
+  - gonogo_report
+  - gonogo_compare
+provides_hooks: []
