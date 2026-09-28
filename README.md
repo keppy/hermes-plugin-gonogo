@@ -39,12 +39,6 @@ measurement happened, without anyone remembering to go run a script.
 
 ## A worked exchange
 
-![gonogo plugin: the 47/50 question, answered live](docs/demo.gif)
-
-Real `hermes -z` session against the installed plugin (the tool call is
-genuine; the model reads the verdict off the interval's lower bound and
-suggests the confidence-file path):
-
 > **You:** The invoice router got 47 of 50 right. Ship it?
 >
 > **Agent:** *(calls `gonogo_decide` with passed=47, total=50, target=0.95)*
