@@ -5,7 +5,7 @@
 # `git rev-parse v<version>^{commit}` in the commit after tagging, never by hand.
 name: gonogo
 repo: https://github.com/keppy/hermes-plugin-gonogo
-sha: f7438aa32a0b6ea3f38c97d72e6868c4c26804c1
+sha: 3f9945d3235d204d74420544fbd11a08121cd6d2
 description: Turn a pilot-scale eval score into a deployment decision with Wilson intervals
   and an honest INSUFFICIENT EVIDENCE verdict. A threshold chosen on the same cases is a
   candidate for fresh validation, not authorization to deploy selective automation.
