@@ -42,7 +42,7 @@ def _gonogo():
 
 
 def _fail(message: str, **extra: Any) -> str:
-    return json.dumps({"error": message, **extra}, ensure_ascii=False)
+    return json.dumps({"error": message, **extra}, ensure_ascii=False, allow_nan=False)
 
 
 def _clean(value: Any) -> Any:
@@ -78,6 +78,16 @@ def _as_float(value: Any, default: float) -> float:
         except ValueError:
             return default
     return default
+
+
+def _probability(args: dict, name: str) -> float:
+    """Default only an omitted parameter; never replace a malformed value."""
+    if name not in args:
+        return 0.95
+    value = _as_float(args[name], float("nan"))
+    if not math.isfinite(value) or not 0.0 < value < 1.0:
+        raise ValueError(f"{name} must be a number in (0, 1), got {args[name]!r}")
+    return value
 
 
 def _load_rows(raw_path: Any) -> tuple[list[dict], dict | None]:
@@ -142,6 +152,8 @@ def _to_results(rows: list[dict], g) -> list[Any]:
             group=None if group is None else str(group),
         )
 
+        if not isinstance(row["passed"], bool):
+            raise ValueError(f"case {case_id!r}: passed must be a boolean, got {row['passed']!r}")
         if row.get("error"):
             detail = f"agent error: {row['error']}"
             results.append(g.CaseResult(
@@ -160,9 +172,11 @@ def _to_results(rows: list[dict], g) -> list[Any]:
             if not 0.0 <= confidence <= 1.0:
                 raise ValueError(
                     f"case {case_id!r}: confidence must be in [0, 1], got {row['confidence']!r}")
-        passed = bool(row["passed"])
+        passed = row["passed"]
         score = row.get("score")
         score = _as_float(score, 1.0 if passed else 0.0)
+        if not math.isfinite(score):
+            raise ValueError(f"case {case_id!r}: score must be finite")
         metadata = {k: v for k, v in row.items()
                     if k not in ("id", "group", "passed", "confidence", "score",
                                  "detail", "error", "abstained", "output", "input", "expected")}
@@ -182,6 +196,15 @@ def _trials(rows: list[dict], g) -> tuple[list[tuple[float, bool]], str, int | N
     case in it passed.
     """
     results = _to_results(rows, g)
+    answered = [r for r in results if not r.prediction.error and not r.prediction.abstained]
+    supplied = any(r.prediction.confidence is not None for r in answered)
+    missing = any(r.prediction.confidence is None for r in answered)
+    if supplied and missing:
+        raise ValueError("mixed missing and present confidence; supply confidence for every answered case or none")
+    if supplied:
+        for r in results:
+            if r.prediction.error and r.prediction.confidence is None:
+                r.prediction.confidence = 1.0
     grouped = [r.case.group is not None for r in results]
     if all(grouped):
         groups = g.group_results(results)
@@ -195,7 +218,8 @@ def _trials(rows: list[dict], g) -> tuple[list[tuple[float, bool]], str, int | N
     return [(r.confidence, r.passed) for r in results], "cases", None, results
 
 
-def _decision_dict(decision, *, task: str, n_cases: int, n_passed: int) -> dict:
+def _decision_dict(decision, *, task: str, n_cases: int | None,
+                   n_passed_cases: int | None, n_passed_trials: int) -> dict:
     point = decision.pass_rate
     op = decision.operating_point
     return {
@@ -207,7 +231,8 @@ def _decision_dict(decision, *, task: str, n_cases: int, n_passed: int) -> dict:
         "unit": decision.unit,
         "n_trials": point.n,
         "n_cases": n_cases,
-        "n_passed": n_passed,
+        "n_passed": n_passed_cases,
+        "n_trials_passed": n_passed_trials,
         "pass_rate": {
             "point": point.point, "low": point.low, "high": point.high,
             "level": point.level, "n": point.n, "text": str(point),
@@ -231,15 +256,17 @@ def _decision_dict(decision, *, task: str, n_cases: int, n_passed: int) -> dict:
 def _decision_markdown(d: dict) -> str:
     lines = [f"**{d['verdict']}** — {d['reason']}", ""]
     unit = d["unit"]
-    lines.append(
-        f"Pass rate {d['pass_rate']['text']} over {d['n_trials']} {unit} "
-        f"({d['n_passed']}/{d['n_cases']} cases passed), target {d['target']:.0%}")
+    context = (f" ({d['n_passed']}/{d['n_cases']} cases passed)"
+               if d['n_cases'] is not None and d['n_cases'] != d['n_trials'] else "")
+    lines.append(f"Pass rate {d['pass_rate']['text']} over {d['n_trials']} {unit} "
+                 f"({d['n_trials_passed']} passed){context}, target {d['target']:.0%}")
     op = d["operating_point"]
     if op:
         lines.append(
-            f"Operating point: abstain below {op['threshold']:.2f} → {op['coverage']:.0%} "
-            f"handled at {op['precision']:.1%} precision {op['precision_text']}, "
-            f"{op['n_deferred']} to review")
+            f"Candidate operating point (fresh holdout required): abstain below "
+            f"{op['threshold']:.2f} → {op['coverage']:.0%} {unit} selected at "
+            f"{op['precision']:.1%} precision {op['precision_text']}, "
+            f"{op['n_deferred']} {unit} to review")
     if d["calibration_error"] is not None:
         lines.append(f"Calibration error {d['calibration_error']:.2f}")
     if d["needed_n"]:
@@ -261,12 +288,21 @@ def _outcomes_payload(raw_path: Any) -> dict:
     """A ``{cases: [{id, passed}]}`` payload — what gonogo.compare pairs on."""
     rows, payload = _load_rows(raw_path)
     if payload is not None:
+        if (payload.get("metadata") or {}).get("source") == "hermes-plugin-gonogo" and (
+                (payload.get("metadata") or {}).get("ids_source") != "explicit"):
+            raise ValueError("saved plugin report lacks explicit stable case IDs; rerun with IDs before comparing")
         return payload
     cases = []
     for i, row in enumerate(rows, 1):
         if "passed" not in row:
             raise ValueError(f"case {row.get('id') or i!r}: missing required key 'passed'")
-        cases.append({"id": str(row.get("id") or f"case-{i}"), "passed": bool(row["passed"])})
+        if not isinstance(row["passed"], bool):
+            raise ValueError(f"case {row.get('id') or i!r}: passed must be a boolean")
+        if not isinstance(row.get("id"), str) or not row["id"].strip():
+            raise ValueError(f"case {i}: compare requires an explicit stable nonempty id")
+        cases.append({"id": row["id"],
+                      "group": row.get("group"),
+                      "passed": row["passed"] and not row.get("error") and not row.get("abstained")})
     return {"cases": cases}
 
 
@@ -280,15 +316,11 @@ def gonogo_decide(args: dict, **kwargs: Any) -> str:
         g = _gonogo()
     except ImportError as exc:
         return _fail(f"gonogo is not importable in this environment ({exc}); "
-                     "install gonogo-eval>=0.2 into the Hermes venv")
+                     "install gonogo-eval>=0.3 into the Hermes venv")
 
     try:
-        target = _as_float(args.get("target"), 0.95)
-        level = _as_float(args.get("level"), 0.95)
-        if not 0.0 < target < 1.0:
-            return _fail(f"target must be in (0, 1), got {target}")
-        if not 0.0 < level < 1.0:
-            return _fail(f"level must be in (0, 1), got {level}")
+        target = _probability(args, "target")
+        level = _probability(args, "level")
 
         path = args.get("results_path")
         if isinstance(path, str) and path.strip():
@@ -307,17 +339,21 @@ def gonogo_decide(args: dict, **kwargs: Any) -> str:
             trials = [(1.0, True)] * passed + [(1.0, False)] * (total - passed)
             unit = str(args.get("unit") or "cases")
             n_groups = None
-            n_cases = total
+            n_cases = total if unit == "cases" else None
             task = str(args.get("task") or "task")
 
         decision = g.decide(trials, target=target, level=level, unit=unit)
         if n_groups is not None:
             decision.n_groups = n_groups
-        n_passed = sum(1 for _, passed_ in trials if passed_)
-
-        out = _decision_dict(decision, task=task, n_cases=n_cases, n_passed=n_passed)
+        elif n_cases is None and unit == "groups":
+            decision.n_groups = total
+        n_passed_trials = sum(1 for _, passed_ in trials if passed_)
+        n_passed_cases = (sum(r.passed for r in results) if path and isinstance(path, str)
+                          else n_passed_trials if n_cases is not None else None)
+        out = _decision_dict(decision, task=task, n_cases=n_cases,
+                             n_passed_cases=n_passed_cases, n_passed_trials=n_passed_trials)
         out["markdown"] = _decision_markdown(out)
-        return json.dumps(out, ensure_ascii=False)
+        return json.dumps(out, ensure_ascii=False, allow_nan=False)
     except ValueError as exc:
         return _fail(str(exc))
     except Exception as exc:  # never raise out of a tool handler
@@ -330,15 +366,13 @@ def gonogo_report(args: dict, **kwargs: Any) -> str:
         g = _gonogo()
     except ImportError as exc:
         return _fail(f"gonogo is not importable in this environment ({exc}); "
-                     "install gonogo-eval>=0.2 into the Hermes venv")
+                     "install gonogo-eval>=0.3 into the Hermes venv")
 
     try:
         path = args.get("results_path")
         rows, payload = _load_rows(path)
-        target = _as_float(args.get("target"), 0.95)
-        level = _as_float(args.get("level"), 0.95)
-        if not 0.0 < target < 1.0:
-            return _fail(f"target must be in (0, 1), got {target}")
+        target = _probability(args, "target")
+        level = _probability(args, "level")
         show_failures = _as_int(args.get("show_failures"))
         show_failures = 5 if show_failures is None else max(0, show_failures)
 
@@ -350,10 +384,14 @@ def gonogo_report(args: dict, **kwargs: Any) -> str:
         task = _task_name(path, args.get("task"), payload)
         report = g.Report(
             task=task, results=results, decision=decision,
-            metadata={"source": "hermes-plugin-gonogo", "group_rule": "auto"})
+            metadata={"source": "hermes-plugin-gonogo", "group_rule": "auto",
+                      "ids_source": "explicit" if all(isinstance(r.get("id"), str) and r["id"].strip()
+                                                      for r in rows) else "generated"})
 
-        n_passed = sum(1 for _, passed_ in trials if passed_)
-        out = _decision_dict(decision, task=task, n_cases=len(results), n_passed=n_passed)
+        n_passed_trials = sum(1 for _, passed_ in trials if passed_)
+        out = _decision_dict(decision, task=task, n_cases=len(results),
+                             n_passed_cases=sum(r.passed for r in results),
+                             n_passed_trials=n_passed_trials)
         out["summary"] = report.summary()
         out["markdown"] = report.markdown(show_failures=show_failures)
 
@@ -361,7 +399,8 @@ def gonogo_report(args: dict, **kwargs: Any) -> str:
         if isinstance(save, str) and save.strip():
             dest = Path(save).expanduser()
             dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_text(json.dumps(report.to_dict(), indent=2, ensure_ascii=False),
+            dest.write_text(json.dumps(report.to_dict(), indent=2, ensure_ascii=False,
+                                       allow_nan=False),
                             encoding="utf-8")
             out["saved_report"] = str(dest)
 
@@ -375,7 +414,7 @@ def gonogo_report(args: dict, **kwargs: Any) -> str:
         if args.get("include_report_json"):
             out["report"] = report.to_dict()
 
-        return json.dumps(out, ensure_ascii=False)
+        return json.dumps(out, ensure_ascii=False, allow_nan=False)
     except ValueError as exc:
         return _fail(str(exc))
     except Exception as exc:
@@ -388,17 +427,16 @@ def gonogo_compare(args: dict, **kwargs: Any) -> str:
         g = _gonogo()
     except ImportError as exc:
         return _fail(f"gonogo is not importable in this environment ({exc}); "
-                     "install gonogo-eval>=0.2 into the Hermes venv")
+                     "install gonogo-eval>=0.3 into the Hermes venv")
 
     try:
-        level = _as_float(args.get("level"), 0.95)
-        if not 0.0 < level < 1.0:
-            return _fail(f"level must be in (0, 1), got {level}")
+        level = _probability(args, "level")
         a = _outcomes_payload(args.get("report_a"))
         b = _outcomes_payload(args.get("report_b"))
         cmp = g.compare(a, b, level=level)
         return json.dumps({
             "n_shared": cmp.n_shared,
+            "unit": cmp.unit,
             "rate_a": cmp.rate_a,
             "rate_b": cmp.rate_b,
             "difference": cmp.difference,
@@ -414,7 +452,7 @@ def gonogo_compare(args: dict, **kwargs: Any) -> str:
             "summary": cmp.summary(),
             "markdown": f"**{'Distinguishable' if cmp.significant else 'Not distinguishable'}**\n\n"
                         f"```\n{cmp.summary()}\n```\n\n{cmp}",
-        }, ensure_ascii=False)
+        }, ensure_ascii=False, allow_nan=False)
     except ValueError as exc:
         return _fail(str(exc))
     except Exception as exc:

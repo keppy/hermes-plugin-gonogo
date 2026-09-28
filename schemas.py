@@ -21,7 +21,7 @@ GONOGO_DECIDE = {
         "honestly at pilot sample sizes. Returns one of: AUTOMATE, AUTOMATE WITH "
         "REVIEW, ASSIST ONLY, DO NOT AUTOMATE, INSUFFICIENT EVIDENCE — with the "
         "pass rate's Wilson interval, the confidence threshold that maximizes "
-        "automated volume while keeping precision's lower bound above the target, "
+        "candidate automated volume while keeping same-set precision's lower bound above the target; a fresh holdout is required before shipping, "
         "calibration error, and how many cases would be needed to support the "
         "claim. "
         "Call this whenever someone is about to read a point estimate as an "
@@ -76,8 +76,8 @@ GONOGO_REPORT = {
     "name": "gonogo_report",
     "description": (
         "Build the full gonogo score report for a results file: the verdict, "
-        "every rate with its interval, the risk–coverage table (what you can "
-        "hand over at each confidence threshold and how many cases land on a "
+        "every rate with its interval, the risk–coverage table (candidate coverage "
+        "at each confidence threshold and how many trials land on a "
         "human), the reliability/calibration table, and the worst failures. "
         "Use when the deliverable is the artifact — a report to paste into a "
         "doc, PR or pilot review — rather than a yes/no answer. "
@@ -111,7 +111,7 @@ GONOGO_REPORT = {
                 "description": (
                     "Path to write the report JSON to. Do this whenever the run "
                     "might be compared against another one later — gonogo pairs "
-                    "runs by case id."
+                    "runs by case id (or group id for grouped trials)."
                 ),
             },
             "write_html": {
@@ -134,14 +134,14 @@ GONOGO_COMPARE = {
     "name": "gonogo_compare",
     "description": (
         "Test whether one agent is actually better than another on the cases "
-        "they share — McNemar's test on paired per-case outcomes, reporting the "
+        "they share — McNemar's test on paired case or group outcomes, reporting the "
         "difference in pass rate with an interval and a p-value. "
         "Call this when a change is claimed to be an improvement, BEFORE "
         "agreeing to it: on pilot-sized samples a 3-point gap is usually "
         "indistinguishable from noise, and 'no detectable difference' is the "
         "useful answer. "
         "Takes two results files or two saved gonogo report JSONs that share "
-        "case ids; cases only one side ran are ignored. For a single run's "
+        "case ids (or group ids with matching membership); trials only one side ran are ignored. For a single run's "
         "ship / don't-ship call, use gonogo_decide instead."
     ),
     "parameters": {

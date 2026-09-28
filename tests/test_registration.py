@@ -69,13 +69,13 @@ def test_manifest_is_manifest_v2(manifest):
     assert isinstance(manifest["api_version"], int)
     assert manifest["license"] == "MIT"
     assert manifest["homepage"].startswith("https://")
-    assert manifest["version"] == "0.1.0"
+    assert manifest["version"] == "0.2.0"
 
 
 def test_dependency_range_agrees_with_the_manifest_version():
     """One declared dependency, in the file Hermes prefers (pyproject.toml)."""
     text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    assert "gonogo-eval>=0.2,<0.3" in text
+    assert "gonogo-eval>=0.3,<0.4" in text
 
 
 def test_every_tool_has_a_schema_whose_name_matches(ctx):

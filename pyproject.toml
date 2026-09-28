@@ -2,11 +2,12 @@
 # own venv on `hermes plugins install` / `enable`, re-applying them after every
 # `hermes update`. Keep the declared range honest: this plugin calls gonogo's
 # public API (Case, Prediction, CaseResult, group_results, decide, Report,
-# compare), which is what 0.2 exposes.
+# compare). The grouped-trial/holdout-safety behavior requires gonogo 0.3;
+# 0.2 is incompatible even if its public function names still import.
 
 [project]
 name = "hermes-plugin-gonogo"
-version = "0.1.0"
+version = "0.2.0"
 description = "Hermes plugin: turn a pilot-scale eval score into a ship / don't-ship decision."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,7 +15,7 @@ license = { text = "MIT" }
 authors = [{ name = "James Dominguez" }]
 keywords = ["hermes", "plugin", "evals", "calibration", "selective-prediction"]
 dependencies = [
-  "gonogo-eval>=0.2,<0.3",
+  "gonogo-eval>=0.3,<0.4",
 ]
 
 [project.optional-dependencies]

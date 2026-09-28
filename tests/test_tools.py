@@ -143,7 +143,9 @@ def test_grouped_rows_are_folded_to_one_trial_per_group(tmp_path):
     assert out["unit"] == "groups"
     assert out["n_trials"] == 2          # two groups, not four cases
     assert out["n_cases"] == 4           # the case count is context
-    assert out["n_passed"] == 1          # g2 fails because one case in it failed
+    assert out["n_passed"] == 3          # case count, not group count
+    assert out["n_trials_passed"] == 1   # g2 fails because one case in it failed
+    assert "3/4 cases passed" in out["markdown"]
 
 
 def test_mixed_grouping_is_an_error(tmp_path):
