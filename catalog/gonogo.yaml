@@ -3,7 +3,7 @@
 # plugin-catalog/ is the one that installs.
 name: gonogo
 repo: https://github.com/keppy/hermes-plugin-gonogo
-sha: 1a1d00966065e30686a948eca6f06cda607a5135
+sha: f7438aa32a0b6ea3f38c97d72e6868c4c26804c1
 description: Turn a pilot-scale eval score into a deployment decision — Wilson intervals, a
   confidence threshold that routes uncertain cases to a human, and an honest INSUFFICIENT
   EVIDENCE verdict when the sample cannot support the claim.
