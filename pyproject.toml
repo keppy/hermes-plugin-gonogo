@@ -1,6 +1,6 @@
 # Hermes reads [project].dependencies from this file and installs them into its
 # own venv on `hermes plugins install` / `enable`, re-applying them after every
-# `hermes update`. Keep the declared range honest: this plugin calls gonogo's
+# `hermes update`. Keep the reviewed pin compatible: this plugin calls gonogo's
 # public API (Case, Prediction, CaseResult, group_results, decide, Report,
 # compare). The grouped-trial/holdout-safety behavior requires gonogo 0.3;
 # 0.2 is incompatible even if its public function names still import.
@@ -15,7 +15,7 @@ license = { text = "MIT" }
 authors = [{ name = "James Dominguez" }]
 keywords = ["hermes", "plugin", "evals", "calibration", "selective-prediction"]
 dependencies = [
-  "gonogo-eval>=0.3,<0.4",
+  "gonogo-eval==0.3.0",
 ]
 
 [project.optional-dependencies]
@@ -27,3 +27,7 @@ Source = "https://github.com/keppy/hermes-plugin-gonogo"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Exempt only reviewed exact pins; transitive releases keep Hermes' quarantine.
+[tool.uv.exclude-newer-package]
+gonogo-eval = false
