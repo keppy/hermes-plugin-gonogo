@@ -241,3 +241,72 @@ def test_compare_with_unmatched_ids_is_an_error(tmp_path):
     b = write(tmp_path, "b.jsonl", [{"id": "y", "passed": True}])
     out = json.loads(tools.gonogo_compare({"report_a": a, "report_b": b}))
     assert "error" in out
+
+
+# --------------------------------------------------------------------------- #
+# gonogo 0.4: expected actions and the borderline compare verdict
+
+
+def test_a_correct_hold_back_marked_abstained_still_passes(tmp_path):
+    """gonogo sets abstained on every non-answer action. A row that says so on a
+    case whose right move was no_reply is a pass, not an abstention failure."""
+    rows = rows_for(40, 0, confidence=0.9) + [
+        {"id": f"h{i}", "passed": True, "expected_action": "no_reply", "action": "no_reply",
+         "abstained": True, "confidence": 0.9} for i in range(10)]
+    out = json.loads(tools.gonogo_report({"results_path": write(tmp_path, "r.jsonl", rows), "target": 0.9}))
+    assert out["n_passed"] == 50
+    assert out["actions"]["matrix"]
+
+
+def test_a_confident_wrong_wait_keeps_its_confidence(tmp_path):
+    """The train-M bug, at the plugin boundary: a confident 'wait' on a case that
+    needed an answer is a silent miss. It must count against precision at its own
+    confidence, not hide at 0.0 below every threshold."""
+    rows = [{"id": f"a{i}", "passed": True, "confidence": 0.95} for i in range(90)]
+    rows += [{"id": f"w{i}", "passed": False, "action": "wait", "abstained": True,
+              "confidence": 0.95} for i in range(10)]
+    out = json.loads(tools.gonogo_report({"results_path": write(tmp_path, "r.jsonl", rows),
+                                          "target": 0.9, "include_report_json": True}))
+    confs = {c["id"]: c["confidence"] for c in out["report"]["cases"]}
+    assert confs["w0"] == 0.95
+    assert out["actions"]["held_back_when_should_act"] == 10
+    op = out["operating_point"]
+    assert op is None or op["n_deferred"] < 10  # the waits are not in the review pile
+
+
+def test_plain_abstention_on_an_answer_case_is_still_a_deferral(tmp_path):
+    rows = rows_for(45, 0, confidence=0.9) + [{"id": "x", "passed": False, "abstained": True}]
+    out = json.loads(tools.gonogo_report({"results_path": write(tmp_path, "r.jsonl", rows),
+                                          "include_report_json": True}))
+    assert {c["id"]: c["confidence"] for c in out["report"]["cases"]}["x"] == 0.0
+    assert "actions" not in out
+
+
+def test_passed_must_agree_with_the_expected_action(tmp_path):
+    rows = [{"id": "a", "passed": True, "expected_action": "ask", "action": "wait"}]
+    out = json.loads(tools.gonogo_report({"results_path": write(tmp_path, "r.jsonl", rows)}))
+    assert "error" in out and "expected_action" in out["error"]
+    rows = [{"id": "a", "passed": True, "action": "wait"}]
+    out = json.loads(tools.gonogo_report({"results_path": write(tmp_path, "r.jsonl", rows)}))
+    assert "error" in out
+
+
+def test_compare_counts_a_correct_hold_back_as_a_pass(tmp_path):
+    hold = {"expected_action": "no_reply", "action": "no_reply", "abstained": True}
+    a = write(tmp_path, "a.jsonl", [{"id": f"c{i}", "passed": True, **hold} for i in range(30)])
+    b = write(tmp_path, "b.jsonl", [{"id": f"c{i}", "passed": True, **hold} for i in range(30)])
+    out = json.loads(tools.gonogo_compare({"report_a": a, "report_b": b}))
+    assert out["rate_a"] == out["rate_b"] == 1.0
+
+
+def test_compare_says_borderline_when_test_and_interval_disagree(tmp_path):
+    """Banking77 Claude vs encoder: 14 vs 28 disagreements on 250 cases. McNemar
+    p=0.044 but the interval crosses zero, so gonogo 0.4 says borderline."""
+    a = [{"id": f"c{i}", "passed": i < 190} for i in range(250)]
+    b = [{"id": f"c{i}", "passed": (i < 176) or (190 <= i < 218)} for i in range(250)]
+    out = json.loads(tools.gonogo_compare({"report_a": write(tmp_path, "a.jsonl", a),
+                                           "report_b": write(tmp_path, "b.jsonl", b)}))
+    assert (out["only_a"], out["only_b"]) == (14, 28)
+    assert out["significant"] is False
+    assert out["borderline"] is True and out["test_significant"] is True
+    assert out["markdown"].startswith("**Borderline")

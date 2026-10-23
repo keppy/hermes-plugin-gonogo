@@ -23,7 +23,9 @@ Call `gonogo_decide` the moment someone states a pass rate as if it settled
 something, or asks whether an agent can be put in front of real work — even
 when they did not ask for statistics. Call `gonogo_compare` before agreeing
 that a change improved anything: on pilot-sized samples a 3-point gap is
-usually noise, and "not distinguishable" is the useful answer.
+usually noise, and "not distinguishable" is the useful answer. "Borderline"
+means McNemar's test and the difference interval disagree: say it is not
+established, never that B is better.
 
 ## The five verdicts
 
@@ -65,6 +67,7 @@ spreadsheet. Only `passed` is required.
 {"id": "inv-002", "passed": false, "confidence": 0.61, "expected": "Borealis", "output": "Boreal", "detail": "truncated vendor"}
 {"id": "inv-003", "passed": false, "error": "TimeoutError: 30s"}
 {"id": "inv-004", "passed": false, "abstained": true}
+{"id": "msg-014", "passed": true,  "confidence": 0.91, "expected_action": "no_reply", "action": "no_reply"}
 ```
 
 - `confidence` (0–1) is optional for the whole file, but mixed missing and
@@ -72,6 +75,12 @@ spreadsheet. Only `passed` is required.
 - `error` marks a crashed case (a failed case, not an aborted run); `abstained`
   marks an explicit abstention, which lands at zero confidence so a threshold
   defers it first.
+- `expected_action` (absent = answer) and `action` grade decisions not to act:
+  `wait`, `ask`, `no_reply`. A hold-back case passes exactly when they match;
+  every action except `abstain` keeps its confidence, so a confident wrong
+  `wait` counts against precision. Read the actions table: "acted when it
+  should have held back" and "held back when it should have acted" are the
+  failures a pass rate hides.
 - `group` on every case folds correlated checks into one trial per group —
   several fields from one document are one draw of the system under test, and
   counting them separately makes the interval narrower than the evidence.

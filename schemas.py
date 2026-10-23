@@ -92,7 +92,8 @@ GONOGO_REPORT = {
                 "description": (
                     "Path to a results file: JSONL with one object per case "
                     "({id, passed, confidence?, expected?, output?, score?, "
-                    "group?, error?, abstained?}) or a previously saved gonogo "
+                    "group?, error?, abstained?, expected_action?, action?}) or a "
+                    "previously saved gonogo "
                     "report JSON."
                 ),
             },
@@ -139,7 +140,8 @@ GONOGO_COMPARE = {
         "Call this when a change is claimed to be an improvement, BEFORE "
         "agreeing to it: on pilot-sized samples a 3-point gap is usually "
         "indistinguishable from noise, and 'no detectable difference' is the "
-        "useful answer. "
+        "useful answer. 'Borderline' means the test and the interval disagree: "
+        "the difference is not established, so don't call B better. "
         "Takes two results files or two saved gonogo report JSONs that share "
         "case ids (or group ids with matching membership); trials only one side ran are ignored. For a single run's "
         "ship / don't-ship call, use gonogo_decide instead."

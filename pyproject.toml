@@ -7,7 +7,7 @@
 
 [project]
 name = "hermes-plugin-gonogo"
-version = "0.2.0"
+version = "0.3.0"
 description = "Hermes plugin: turn a pilot-scale eval score into a ship / don't-ship decision."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -15,7 +15,7 @@ license = { text = "MIT" }
 authors = [{ name = "James Dominguez" }]
 keywords = ["hermes", "plugin", "evals", "calibration", "selective-prediction"]
 dependencies = [
-  "gonogo-eval>=0.3,<0.4",
+  "gonogo-eval>=0.4,<0.5",
 ]
 
 [project.optional-dependencies]

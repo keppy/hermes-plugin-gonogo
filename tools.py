@@ -21,6 +21,11 @@ __all__ = ["gonogo_decide", "gonogo_report", "gonogo_compare"]
 
 _module: Any = None
 
+# gonogo's action names (gonogo.cases): the action that produces an output for
+# the scorer, and the one non-answer that is a deferral rather than a decision.
+ANSWER = "answer"
+ABSTAIN = "abstain"
+
 
 def _gonogo():
     """Import gonogo on first use.
@@ -132,12 +137,34 @@ def _load_rows(raw_path: Any) -> tuple[list[dict], dict | None]:
     return rows, payload
 
 
+def _actions(row: dict, case_id: str) -> tuple[str, str]:
+    """(expected_action, action) for a row, as gonogo 0.4 reads them.
+
+    Absent ``expected_action`` means the case expects an answer. Absent
+    ``action`` means the agent answered, or abstained when ``abstained`` is set.
+    """
+    expected = row.get("expected_action", ANSWER)
+    action = row.get("action", ABSTAIN if row.get("abstained") else ANSWER)
+    for name, value in (("expected_action", expected), ("action", action)):
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"case {case_id!r}: {name} must be a non-empty string")
+    return expected, action
+
+
+def _deferral(expected: str, action: str) -> bool:
+    """gonogo's one deferral: a plain abstention on a case that expects an answer."""
+    return action == ABSTAIN and expected == ANSWER
+
+
 def _to_results(rows: list[dict], g) -> list[Any]:
     """Rebuild per-case rows into gonogo CaseResults.
 
     Mirrors ``gonogo.evaluate``: an agent error is a failed case (not an
-    aborted run) and an explicit abstention is a failure at zero confidence,
-    so it is deferred first by any threshold.
+    aborted run); a plain abstention on a case that expects an answer is a
+    failure at zero confidence, so it is deferred first by any threshold.
+    Every other action (``wait``, ``ask``, ``no_reply``...) is a decision and
+    keeps the agent's confidence, so a confidently wrong one counts against
+    precision instead of hiding in the review pile.
     """
     results = []
     for i, row in enumerate(rows, 1):
@@ -145,11 +172,13 @@ def _to_results(rows: list[dict], g) -> list[Any]:
             raise ValueError(f"case {row.get('id') or i!r}: missing required key 'passed'")
         case_id = str(row.get("id") or f"case-{i}")
         group = row.get("group")
+        expected_action, action = _actions(row, case_id)
         case = g.Case(
             input=row.get("input", case_id),
             expected=row.get("expected", ""),
             id=case_id,
             group=None if group is None else str(group),
+            expected_action=expected_action,
         )
 
         if not isinstance(row["passed"], bool):
@@ -160,7 +189,16 @@ def _to_results(rows: list[dict], g) -> list[Any]:
                 case, g.Prediction(output=None, error=str(row["error"])),
                 passed=False, score=0.0, detail=detail))
             continue
-        if row.get("abstained"):
+        if expected_action != ANSWER and row["passed"] != (action == expected_action):
+            raise ValueError(
+                f"case {case_id!r}: passed={row['passed']} disagrees with expected_action "
+                f"{expected_action!r} and action {action!r}; a hold-back case passes exactly "
+                f"when the action matches")
+        if expected_action == ANSWER and action != ANSWER and row["passed"]:
+            raise ValueError(
+                f"case {case_id!r}: passed=true but action {action!r} on a case that expects "
+                f"an answer (expected_action is absent or 'answer')")
+        if _deferral(expected_action, action):
             results.append(g.CaseResult(
                 case, g.Prediction(row.get("output"), confidence=0.0, abstained=True),
                 passed=False, score=0.0, detail="agent abstained"))
@@ -178,11 +216,13 @@ def _to_results(rows: list[dict], g) -> list[Any]:
         if not math.isfinite(score):
             raise ValueError(f"case {case_id!r}: score must be finite")
         metadata = {k: v for k, v in row.items()
-                    if k not in ("id", "group", "passed", "confidence", "score",
-                                 "detail", "error", "abstained", "output", "input", "expected")}
+                    if k not in ("id", "group", "passed", "confidence", "score", "detail",
+                                 "error", "abstained", "output", "input", "expected",
+                                 "expected_action", "action")}
         case.metadata = metadata
+        output = row.get("output", passed) if action == ANSWER else row.get("output")
         results.append(g.CaseResult(
-            case, g.Prediction(row.get("output", passed), confidence=confidence),
+            case, g.Prediction(output, confidence=confidence, action=action),
             passed=passed, score=score, detail=str(row.get("detail", ""))))
     return results
 
@@ -196,7 +236,8 @@ def _trials(rows: list[dict], g) -> tuple[list[tuple[float, bool]], str, int | N
     case in it passed.
     """
     results = _to_results(rows, g)
-    answered = [r for r in results if not r.prediction.error and not r.prediction.abstained]
+    answered = [r for r in results if not r.prediction.error
+                and not _deferral(r.case.expected_action, r.prediction.action)]
     supplied = any(r.prediction.confidence is not None for r in answered)
     missing = any(r.prediction.confidence is None for r in answered)
     if supplied and missing:
@@ -271,9 +312,28 @@ def _decision_markdown(d: dict) -> str:
         lines.append(f"Calibration error {d['calibration_error']:.2f}")
     if d["needed_n"]:
         lines.append(f"Needs about {d['needed_n']} {unit} to support the claim at this target")
+    a = d.get("actions")
+    if a:
+        lines.append(f"Actions: acted when it should have held back {a['acted_when_should_hold_back']}, "
+                     f"held back when it should have acted {a['held_back_when_should_act']}")
     for note in d["notes"]:
         lines.append(f"Note: {note}")
     return "\n".join(lines)
+
+
+def _compare_label(cmp) -> str:
+    if cmp.significant:
+        return "Distinguishable"
+    if cmp.borderline:
+        return "Borderline (the test and the interval disagree; not established)"
+    return "Not distinguishable"
+
+
+def _actions_out(results: list[Any], g) -> dict | None:
+    """The expected-by-taken actions table, when any case involves an action
+    other than answer or abstain (gonogo's own rule for showing it)."""
+    report = g.Report(task="", results=results, decision=None)  # actions() never reads it
+    return report.actions() if report.uses_actions else None
 
 
 def _task_name(path: Any, given: Any, payload: dict | None) -> str:
@@ -300,9 +360,11 @@ def _outcomes_payload(raw_path: Any) -> dict:
             raise ValueError(f"case {row.get('id') or i!r}: passed must be a boolean")
         if not isinstance(row.get("id"), str) or not row["id"].strip():
             raise ValueError(f"case {i}: compare requires an explicit stable nonempty id")
+        expected_action, action = _actions(row, row["id"])
         cases.append({"id": row["id"],
                       "group": row.get("group"),
-                      "passed": row["passed"] and not row.get("error") and not row.get("abstained")})
+                      "passed": (row["passed"] and not row.get("error")
+                                 and not _deferral(expected_action, action))})
     return {"cases": cases}
 
 
@@ -316,7 +378,7 @@ def gonogo_decide(args: dict, **kwargs: Any) -> str:
         g = _gonogo()
     except ImportError as exc:
         return _fail(f"gonogo is not importable in this environment ({exc}); "
-                     "install gonogo-eval>=0.3 into the Hermes venv")
+                     "install gonogo-eval>=0.4 into the Hermes venv")
 
     try:
         target = _probability(args, "target")
@@ -352,6 +414,9 @@ def gonogo_decide(args: dict, **kwargs: Any) -> str:
                           else n_passed_trials if n_cases is not None else None)
         out = _decision_dict(decision, task=task, n_cases=n_cases,
                              n_passed_cases=n_passed_cases, n_passed_trials=n_passed_trials)
+        actions = _actions_out(results, g) if path and isinstance(path, str) else None
+        if actions is not None:
+            out["actions"] = actions
         out["markdown"] = _decision_markdown(out)
         return json.dumps(out, ensure_ascii=False, allow_nan=False)
     except ValueError as exc:
@@ -366,7 +431,7 @@ def gonogo_report(args: dict, **kwargs: Any) -> str:
         g = _gonogo()
     except ImportError as exc:
         return _fail(f"gonogo is not importable in this environment ({exc}); "
-                     "install gonogo-eval>=0.3 into the Hermes venv")
+                     "install gonogo-eval>=0.4 into the Hermes venv")
 
     try:
         path = args.get("results_path")
@@ -392,6 +457,8 @@ def gonogo_report(args: dict, **kwargs: Any) -> str:
         out = _decision_dict(decision, task=task, n_cases=len(results),
                              n_passed_cases=sum(r.passed for r in results),
                              n_passed_trials=n_passed_trials)
+        if report.uses_actions:
+            out["actions"] = report.actions()
         out["summary"] = report.summary()
         out["markdown"] = report.markdown(show_failures=show_failures)
 
@@ -427,7 +494,7 @@ def gonogo_compare(args: dict, **kwargs: Any) -> str:
         g = _gonogo()
     except ImportError as exc:
         return _fail(f"gonogo is not importable in this environment ({exc}); "
-                     "install gonogo-eval>=0.3 into the Hermes venv")
+                     "install gonogo-eval>=0.4 into the Hermes venv")
 
     try:
         level = _probability(args, "level")
@@ -449,9 +516,10 @@ def gonogo_compare(args: dict, **kwargs: Any) -> str:
             "p_value": cmp.p_value,
             "exact": cmp.exact,
             "significant": cmp.significant,
+            "borderline": cmp.borderline,
+            "test_significant": cmp.test_significant,
             "summary": cmp.summary(),
-            "markdown": f"**{'Distinguishable' if cmp.significant else 'Not distinguishable'}**\n\n"
-                        f"```\n{cmp.summary()}\n```\n\n{cmp}",
+            "markdown": f"**{_compare_label(cmp)}**\n\n```\n{cmp.summary()}\n```\n\n{cmp}",
         }, ensure_ascii=False, allow_nan=False)
     except ValueError as exc:
         return _fail(str(exc))

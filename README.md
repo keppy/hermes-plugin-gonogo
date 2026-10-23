@@ -14,9 +14,9 @@ hermes plugins install keppy/hermes-plugin-gonogo
 hermes plugins enable gonogo
 ```
 
-Requires `gonogo-eval>=0.3,<0.4`, which Hermes installs for you from the
-plugin's `pyproject.toml`. The 0.2 line is not compatible: the grouped
-pairing and paired-interval behaviour this plugin reports arrived in 0.3.
+Requires `gonogo-eval>=0.4,<0.5`, which Hermes installs for you from the
+plugin's `pyproject.toml`. Expected actions (a case whose right move is to
+wait, ask or not reply) and the *borderline* compare verdict arrived in 0.4.
 
 ## The ecosystem this belongs to
 
@@ -118,12 +118,21 @@ not paired evidence. The file is plain enough to build in a spreadsheet.
 {"id": "inv-006", "passed": false, "confidence": 0.42, "expected": "Acme Supply", "output": "Cinder Works", "detail": "normalized the trading name to its parent entity"}
 {"id": "inv-007", "passed": false, "error": "TimeoutError: 30s"}
 {"id": "inv-008", "passed": false, "abstained": true}
+{"id": "msg-014", "passed": true,  "confidence": 0.91, "expected_action": "no_reply", "action": "no_reply"}
+{"id": "msg-015", "passed": false, "confidence": 0.88, "action": "wait"}
 ```
 
 - `confidence` (0–1) is optional for an entire file, but mixed missing and present
   values are rejected; it is what unlocks a candidate review threshold.
 - `error` is a crashed case — a failure, not an aborted run. `abstained` lands at
   zero confidence, so a threshold defers it first.
+- `expected_action` says the right move for a case is not to answer (`wait`,
+  `ask`, `no_reply`, any name); absent means answer. `action` is what the agent
+  did. A hold-back case passes exactly when they match, and any action other
+  than `abstain` keeps its confidence: a confident wrong `wait` is a silent miss
+  and counts against precision. Reports then carry the actions table (acted
+  when it should have held back / held back when it should have acted). Name
+  your say-nothing action `no_reply` or `wait`, not `abstain`.
 - `group` on every case folds correlated checks into one trial per group.
 - `examples/invoice_routing.jsonl` is a 60-case synthetic set to try it on.
 
